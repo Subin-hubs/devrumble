@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "824121837061",
+    "project_id": "devrumble-a07f7",
+    "storage_bucket": "devrumble-a07f7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:824121837061:android:41846ae0faa7b69952fe6c",
+        "android_client_info": {
+          "package_name": "com.example.dev_rumble"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDElZj0JwzaERtVvFClV4rKCyfa0z3f9ss"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
