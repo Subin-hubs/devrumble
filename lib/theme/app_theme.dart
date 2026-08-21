@@ -1,16 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// Centralized design tokens for Dev Rumble.
-///
-/// Everything in the app (colors, spacing, radii, button styles, type
-/// hierarchy) is pulled from this single file. When the real Dev Rumble
-/// theme is confirmed, update the values here — no other file needs to
-/// change.
 class AppTheme {
   AppTheme._();
 
-  // --- Color tokens ---------------------------------------------------
-  // Neutral-premium placeholder palette. Swap for the brand palette later.
   static const Color primary = Color(0xFF3B4CCA);
   static const Color background = Color(0xFFFAFAFC);
   static const Color surface = Color(0xFFFFFFFF);
@@ -18,7 +10,6 @@ class AppTheme {
   static const Color textSecondary = Color(0xFF6B6F7B);
   static const Color divider = Color(0xFFE6E7EC);
 
-  // --- Spacing tokens (4pt scale) --------------------------------------
   static const double spaceXs = 4;
   static const double spaceSm = 8;
   static const double spaceMd = 16;
@@ -26,7 +17,6 @@ class AppTheme {
   static const double spaceXl = 32;
   static const double space2xl = 48;
 
-  // --- Radius tokens ----------------------------------------------------
   static const double radiusSm = 12;
   static const double radiusMd = 16;
   static const double radiusLg = 24;

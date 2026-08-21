@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
-import '../home/home.dart';
 
 
 
@@ -24,8 +23,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -48,9 +45,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
-  // ============================================================
-  // PASSWORD VALIDATION
-  // ============================================================
 
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) {
@@ -80,9 +74,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return null;
   }
 
-  // ============================================================
-  // CREATE ACCOUNT
-  // ============================================================
 
   Future<void> _handleCreateAccount() async {
     if (!_agreedToTerms) {
@@ -104,7 +95,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
 
     try {
-      // 1. Create Firebase Auth account
       final credential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
@@ -115,7 +105,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       debugPrint('USER CREATED: ${user.uid}');
 
-      // 2. Store user information in Firestore
       await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
@@ -131,7 +120,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       if (!mounted) return;
 
-      // 3. Navigate to Home
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -164,9 +152,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
-  // ============================================================
-  // UI
-  // ============================================================
 
   @override
   Widget build(BuildContext context) {
@@ -192,9 +177,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   crossAxisAlignment:
                   CrossAxisAlignment.start,
                   children: [
-                    // ==================================================
-                    // LOGO
-                    // ==================================================
 
                     Center(
                       child: Column(
@@ -236,9 +218,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                     const SizedBox(height: 24),
 
-                    // ==================================================
-                    // TITLE
-                    // ==================================================
 
                     const Center(
                       child: Text(
@@ -265,9 +244,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                     const SizedBox(height: 28),
 
-                    // ==================================================
-                    // FULL NAME
-                    // ==================================================
 
                     _buildTextField(
                       controller: _fullNameController,
@@ -289,9 +265,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                     const SizedBox(height: 14),
 
-                    // ==================================================
-                    // EMAIL
-                    // ==================================================
 
                     _buildTextField(
                       controller: _emailController,
@@ -321,9 +294,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                     const SizedBox(height: 14),
 
-                    // ==================================================
-                    // PHONE
-                    // ==================================================
 
                     _buildTextField(
                       controller: _phoneController,
@@ -353,9 +323,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                     const SizedBox(height: 14),
 
-                    // ==================================================
-                    // PASSWORD
-                    // ==================================================
 
                     _buildTextField(
                       controller: _passwordController,
@@ -383,7 +350,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                     const SizedBox(height: 8),
 
-                    // Password requirements
 
                     const Padding(
                       padding: EdgeInsets.only(
@@ -400,9 +366,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                     const SizedBox(height: 14),
 
-                    // ==================================================
-                    // CONFIRM PASSWORD
-                    // ==================================================
 
                     _buildTextField(
                       controller:
@@ -444,9 +407,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                     const SizedBox(height: 16),
 
-                    // ==================================================
-                    // TERMS
-                    // ==================================================
 
                     Row(
                       crossAxisAlignment:
@@ -528,9 +488,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                     const SizedBox(height: 20),
 
-                    // ==================================================
-                    // CREATE ACCOUNT BUTTON
-                    // ==================================================
 
                     SizedBox(
                       width: double.infinity,
@@ -579,9 +536,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                     const SizedBox(height: 24),
 
-                    // ==================================================
-                    // DIVIDER
-                    // ==================================================
 
                     Row(
                       children: [
@@ -615,9 +569,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                     const SizedBox(height: 20),
 
-                    // ==================================================
-                    // LOGIN
-                    // ==================================================
 
                     Center(
                       child: RichText(
@@ -662,9 +613,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  // ============================================================
-  // TEXT FIELD
-  // ============================================================
 
   Widget _buildTextField({
     required TextEditingController controller,

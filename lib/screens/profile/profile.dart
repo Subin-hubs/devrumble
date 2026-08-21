@@ -1,498 +1,1045 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-class Profile extends StatefulWidget {
+import '../auth/login_screen.dart';
+import '../camera/history.dart';
+
+class Profile extends StatelessWidget {
   const Profile({super.key});
 
-  @override
-  State<Profile> createState() => _ProfileState();
-}
+  static const darkGreen = Color(0xFF2F4319);
+  static const bg = Color(0xFFFBF9F4);
+  static const accentGreen = Color(0xFF1B5E20);
 
-class _ProfileState extends State<Profile> {
-  static const Color darkGreen = Color(0xFF14361F);
-  static const Color mediumGreen = Color(0xFF3E7B27);
-  static const Color hintGrey = Color(0xFF8A8A85);
-  static const Color fieldBorder = Color(0xFFE0E0DA);
+  Future<void> _logout(BuildContext context) async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Logout'),
+          content: const Text(
+            'Are you sure you want to logout?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, false);
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, true);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Profile.darkGreen,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Logout'),
+            ),
+          ],
+        );
+      },
+    );
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+    if (shouldLogout != true) {
+      return;
+    }
 
-  bool _isLoading = true;
-
-  String _name = 'Loading...';
-  String _email = '';
-  String _phone = '';
-  String? _avatarUrl;
-
-  int _farms = 0;
-  int _crops = 0;
-  double _yieldKg = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUserData();
-  }
-
-  // ============================================================
-  // LOAD USER DATA
-  // ============================================================
-
-  Future<void> _loadUserData() async {
     try {
-      final User? user = _auth.currentUser;
+      await FirebaseAuth.instance.signOut();
 
-      if (user == null) {
-        debugPrint('NO USER LOGGED IN');
+      if (!context.mounted) return;
 
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-            _name = 'Guest';
-            _email = '';
-          });
-        }
-
-        return;
-      }
-
-      debugPrint('CURRENT USER UID: ${user.uid}');
-
-      final DocumentSnapshot<Map<String, dynamic>> document =
-      await _firestore.collection('users').doc(user.uid).get();
-
-      if (!document.exists) {
-        debugPrint('USER DOCUMENT DOES NOT EXIST');
-
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-            _name = user.displayName ?? 'User';
-            _email = user.email ?? '';
-          });
-        }
-
-        return;
-      }
-
-      final data = document.data()!;
-
-      debugPrint('USER DATA: $data');
-
-      if (!mounted) return;
-
-      setState(() {
-        _name = data['fullName']?.toString() ??
-            user.displayName ??
-            'User';
-
-        _email = data['email']?.toString() ??
-            user.email ??
-            '';
-
-        _phone = data['phone']?.toString() ?? '';
-
-        _avatarUrl = data['avatarUrl']?.toString();
-
-        _farms = _toInt(data['farms']);
-        _crops = _toInt(data['crops']);
-        _yieldKg = _toDouble(data['yieldKg']);
-
-        _isLoading = false;
-      });
-    } catch (e) {
-      debugPrint('PROFILE LOAD ERROR: $e');
-
-      if (!mounted) return;
-
-      setState(() {
-        _isLoading = false;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to load profile: $e'),
-        ),
-      );
-    }
-  }
-
-  // ============================================================
-  // SAFE NUMBER CONVERSION
-  // ============================================================
-
-  int _toInt(dynamic value) {
-    if (value == null) return 0;
-
-    if (value is int) {
-      return value;
-    }
-
-    if (value is num) {
-      return value.toInt();
-    }
-
-    return int.tryParse(value.toString()) ?? 0;
-  }
-
-  double _toDouble(dynamic value) {
-    if (value == null) return 0;
-
-    if (value is double) {
-      return value;
-    }
-
-    if (value is num) {
-      return value.toDouble();
-    }
-
-    return double.tryParse(value.toString()) ?? 0;
-  }
-
-  // ============================================================
-  // LOGOUT
-  // ============================================================
-
-  Future<void> _handleLogout() async {
-    try {
-      await _auth.signOut();
-
-      if (!mounted) return;
-
-      // Change this to your actual LoginScreen import/navigation.
-      Navigator.pushNamedAndRemoveUntil(
+      Navigator.pushAndRemoveUntil(
         context,
-        '/login',
+        MaterialPageRoute(
+          builder: (_) => const LoginScreen(),
+        ),
             (route) => false,
       );
     } catch (e) {
-      debugPrint('LOGOUT ERROR: $e');
-
-      if (!mounted) return;
+      if (!context.mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Logout failed: $e'),
+        const SnackBar(
+          content: Text('Failed to logout. Please try again.'),
         ),
       );
     }
   }
 
-  // ============================================================
-  // REFRESH
-  // ============================================================
 
-  Future<void> _refreshProfile() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    await _loadUserData();
+  void _openHistory(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const ScanHistoryScreen(),
+      ),
+    );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body:
+  void _showPersonalInformation(
+      BuildContext context,
+      Map<String, dynamic> data,
+      User user,
+      ) {
+    final name = _getString(
+      data,
+      'name',
+      fallback: user.displayName ?? 'Farmer',
+    );
 
-          SafeArea(
+    final email = _getString(
+      data,
+      'email',
+      fallback: user.email ?? 'Not available',
+    );
+
+    final phone = _getString(
+      data,
+      'phone',
+      fallback: 'Not available',
+    );
+
+    final location = _getString(
+      data,
+      'location',
+      fallback: 'Not set',
+    );
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: bg,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(28),
+        ),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              20,
+              12,
+              20,
+              25,
+            ),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ==================================================
-                // TOP BAR
-                // ==================================================
-
-                // ==================================================
-                // CONTENT
-                // ==================================================
-
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: _refreshProfile,
-                    child: SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                        height: 500,
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            color: mediumGreen,
-                          ),
-                        ),
-                      )
-                          : Column(
-                        children: [
-                          const SizedBox(height: 8),
-
-                          // ================================
-                          // AVATAR
-                          // ================================
-
-                          ProfileAvatar(
-                            avatarUrl: _avatarUrl,
-                            onChangePhoto: () {
-                              // TODO:
-                              // image picker + Firebase Storage
-                            },
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // ================================
-                          // NAME
-                          // ================================
-
-                          Text(
-                            _name,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: darkGreen,
-                            ),
-                          ),
-
-                          const SizedBox(height: 4),
-
-                          // ================================
-                          // EMAIL
-                          // ================================
-
-                          Text(
-                            _email,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: hintGrey,
-                            ),
-                          ),
-
-                          if (_phone.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              _phone,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: hintGrey,
-                              ),
-                            ),
-                          ],
-
-                          const SizedBox(height: 28),
-
-                          // ================================
-                          // STATS
-                          // ================================
-
-                          ProfileStatsRow(
-                            farms: _farms.toString(),
-                            crops: _crops.toString(),
-                            yieldKg: _formatYield(_yieldKg),
-                          ),
-
-                          const SizedBox(height: 24),
-
-                          // ================================
-                          // MENU
-                          // ================================
-
-                          ProfileMenuItem(
-                            icon: Icons.person_outline,
-                            label: 'Account Details',
-                            onTap: () {},
-                          ),
-
-                          ProfileMenuItem(
-                            icon: Icons.agriculture_outlined,
-                            label: 'My Farms',
-                            onTap: () {},
-                          ),
-
-                          ProfileMenuItem(
-                            icon: Icons.receipt_long_outlined,
-                            label: 'Orders & Transactions',
-                            onTap: () {},
-                          ),
-
-                          ProfileMenuItem(
-                            icon: Icons.notifications_outlined,
-                            label: 'Notifications',
-                            onTap: () {},
-                          ),
-
-                          ProfileMenuItem(
-                            icon: Icons.settings_outlined,
-                            label: 'Settings',
-                            onTap: () {},
-                          ),
-
-                          ProfileMenuItem(
-                            icon: Icons.help_outline,
-                            label: 'Help & Support',
-                            onTap: () {},
-                          ),
-
-                          const SizedBox(height: 8),
-
-                          // ================================
-                          // LOGOUT
-                          // ================================
-
-                          ProfileMenuItem(
-                            icon: Icons.logout,
-                            label: 'Log out',
-                            iconColor: Colors.redAccent,
-                            textColor: Colors.redAccent,
-                            onTap: _handleLogout,
-                          ),
-
-                          const SizedBox(height: 24),
-                        ],
-                      ),
+                Center(
+                  child: Container(
+                    width: 45,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
+                ),
+                const SizedBox(height: 22),
+                Text(
+                  'Personal Information',
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: darkGreen,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _InfoRow(
+                  icon: Icons.person_outline,
+                  title: 'Name',
+                  value: name,
+                ),
+                _InfoRow(
+                  icon: Icons.email_outlined,
+                  title: 'Email',
+                  value: email,
+                ),
+                _InfoRow(
+                  icon: Icons.phone_outlined,
+                  title: 'Phone',
+                  value: phone,
+                ),
+                _InfoRow(
+                  icon: Icons.location_on_outlined,
+                  title: 'Location',
+                  value: location,
                 ),
               ],
             ),
           ),
-      );
-
-  }
-
-  String _formatYield(double value) {
-    if (value == 0) {
-      return '0';
-    }
-
-    if (value >= 1000) {
-      return '${(value / 1000).toStringAsFixed(1)}k';
-    }
-
-    return value.toStringAsFixed(
-      value % 1 == 0 ? 0 : 1,
+        );
+      },
     );
   }
-}
 
-// ================================================================
-// PROFILE AVATAR
-// ================================================================
-
-class ProfileAvatar extends StatelessWidget {
-  const ProfileAvatar({
-    super.key,
-    required this.avatarUrl,
-    required this.onChangePhoto,
-  });
-
-  final String? avatarUrl;
-  final VoidCallback onChangePhoto;
-
-  static const Color darkGreen = Color(0xFF14361F);
-  static const Color mediumGreen = Color(0xFF3E7B27);
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        CircleAvatar(
-          radius: 52,
-          backgroundColor: Colors.white,
-          backgroundImage:
-          avatarUrl != null && avatarUrl!.isNotEmpty
-              ? NetworkImage(avatarUrl!)
-              : null,
-          child: avatarUrl == null || avatarUrl!.isEmpty
-              ? const Icon(
-            Icons.person,
-            size: 56,
-            color: mediumGreen,
-          )
-              : null,
+  void _showAbout(BuildContext context) {
+    showAboutDialog(
+      context: context,
+      applicationName: 'Agrova',
+      applicationVersion: '1.0.0',
+      applicationIcon: Container(
+        width: 45,
+        height: 45,
+        decoration: BoxDecoration(
+          color: darkGreen,
+          borderRadius: BorderRadius.circular(12),
         ),
-
-        Positioned(
-          bottom: 0,
-          right: 0,
-          child: GestureDetector(
-            onTap: onChangePhoto,
-            child: Container(
-              padding: const EdgeInsets.all(7),
-              decoration: const BoxDecoration(
-                color: darkGreen,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.camera_alt,
-                size: 16,
-                color: Colors.white,
-              ),
-            ),
+        child: const Icon(
+          Icons.eco,
+          color: Colors.white,
+        ),
+      ),
+      children: [
+        Text(
+          'Agrova is an agricultural platform designed to help farmers with crop analysis, weather information, market prices and other useful farming tools.',
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            height: 1.5,
           ),
         ),
       ],
     );
   }
+
+  void _showHelp(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: bg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(28),
+        ),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              20,
+              15,
+              20,
+              30,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 45,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                const SizedBox(height: 22),
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F2E4),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: const Icon(
+                    Icons.headset_mic_outlined,
+                    color: darkGreen,
+                    size: 30,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                Text(
+                  'Help & Support',
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: darkGreen,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Need help with Agrova? Contact our support team for assistance.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.email_outlined,
+                        color: darkGreen,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'support@agrova.com',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  static String _getString(
+      Map<String, dynamic> data,
+      String key, {
+        String fallback = '',
+      }) {
+    final value = data[key];
+
+    if (value == null) {
+      return fallback;
+    }
+
+    final text = value.toString().trim();
+
+    if (text.isEmpty) {
+      return fallback;
+    }
+
+    return text;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return const Scaffold(
+        backgroundColor: bg,
+        body: Center(
+          child: Text('User not logged in'),
+        ),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: bg,
+      body: SafeArea(
+        top: false,
+        child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState ==
+                ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(
+                  color: darkGreen,
+                ),
+              );
+            }
+
+            if (snapshot.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(25),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        color: Colors.redAccent,
+                        size: 45,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Unable to load profile',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        '${snapshot.error}',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            final data = snapshot.data?.data() ?? {};
+
+            final name = _getString(
+              data,
+              'name',
+              fallback: user.displayName ?? 'Farmer',
+            );
+
+            final email = _getString(
+              data,
+              'email',
+              fallback: user.email ?? 'Email not available',
+            );
+
+            final phone = _getString(
+              data,
+              'phone',
+              fallback: 'Phone not available',
+            );
+
+            final profileImage = _getString(
+              data,
+              'profileImage',
+            );
+
+            return SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildHero(),
+                  _buildAvatar(profileImage),
+                  const SizedBox(height: 12),
+                  _buildNameAndContact(
+                    name: name,
+                    email: email,
+                    phone: phone,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildDivider(),
+                  const SizedBox(height: 8),
+                  _buildMenu(
+                    context,
+                    data,
+                    user,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildLogoutButton(context),
+                  const SizedBox(height: 30),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHero() {
+    return SizedBox(
+      height: 220,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFFF3D9A4),
+                  Color(0xFFE7B98A),
+                  Color(0xFFC9A15E),
+                  Color(0xFF8A9B4E),
+                  Color(0xFF5C7A38),
+                  Color(0xFF3F5C28),
+                ],
+                stops: [
+                  0.0,
+                  0.22,
+                  0.40,
+                  0.55,
+                  0.75,
+                  1.0,
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            top: 20,
+            left: 30,
+            child: Container(
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.yellow.shade100
+                    .withOpacity(0.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.yellow.shade100
+                        .withOpacity(0.4),
+                    blurRadius: 40,
+                    spreadRadius: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: SizedBox(
+              height: 90,
+              child: CustomPaint(
+                painter: _FieldRowsPainter(),
+                size: const Size(
+                  double.infinity,
+                  90,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 8,
+            left: 20,
+            right: 20,
+            child: Row(
+              mainAxisAlignment:
+              MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Profile',
+                  style: GoogleFonts.poppins(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w600,
+                    color: darkGreen,
+                  ),
+                ),
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.black.withOpacity(0.2),
+                  ),
+                  child: const Icon(
+                    Icons.settings,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAvatar(String image) {
+    return Transform.translate(
+      offset: const Offset(0, -56),
+      child: Center(
+        child: Stack(
+          children: [
+            Container(
+              width: 112,
+              height: 112,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white,
+                  width: 4,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: _buildProfileImage(image),
+              ),
+            ),
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: accentGreen,
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 2,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.edit,
+                  size: 14,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileImage(String image) {
+    if (image.isEmpty) {
+      return Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF3E6B3A),
+              Color(0xFF1E3A1B),
+            ],
+          ),
+        ),
+        child: const Icon(
+          Icons.person,
+          size: 56,
+          color: Colors.white70,
+        ),
+      );
+    }
+
+    if (image.startsWith('http')) {
+      return Image.network(
+        image,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) {
+          return _defaultAvatar();
+        },
+      );
+    }
+
+    try {
+      final Uint8List bytes = base64Decode(image);
+
+      return Image.memory(
+        bytes,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) {
+          return _defaultAvatar();
+        },
+      );
+    } catch (_) {
+      return _defaultAvatar();
+    }
+  }
+
+  Widget _defaultAvatar() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF3E6B3A),
+            Color(0xFF1E3A1B),
+          ],
+        ),
+      ),
+      child: const Icon(
+        Icons.person,
+        size: 56,
+        color: Colors.white70,
+      ),
+    );
+  }
+
+  Widget _buildNameAndContact({
+    required String name,
+    required String email,
+    required String phone,
+  }) {
+    return Transform.translate(
+      offset: const Offset(0, -44),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.poppins(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: darkGreen,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              const Icon(
+                Icons.verified,
+                size: 18,
+                color: accentGreen,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.email_outlined,
+                size: 16,
+                color: Colors.grey.shade600,
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  email,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (phone != 'Phone not available') ...[
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.phone_outlined,
+                  size: 16,
+                  color: Colors.grey.shade600,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  phone,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Transform.translate(
+      offset: const Offset(0, -36),
+      child: Center(
+        child: SizedBox(
+          width: 96,
+          child: Row(
+            children: [
+              Expanded(
+                child: Divider(
+                  color: Colors.grey.shade300,
+                  thickness: 1,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.eco,
+                size: 14,
+                color: accentGreen,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Divider(
+                  color: Colors.grey.shade300,
+                  thickness: 1,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenu(
+      BuildContext context,
+      Map<String, dynamic> data,
+      User user,
+      ) {
+    final items = <_MenuItemData>[
+      _MenuItemData(
+        Icons.person_outline,
+        'Personal Information',
+            () => _showPersonalInformation(
+          context,
+          data,
+          user,
+        ),
+      ),
+      _MenuItemData(
+        Icons.history_outlined,
+        'Scan History',
+            () => _openHistory(context),
+      ),
+      _MenuItemData(
+        Icons.headset_mic_outlined,
+        'Help & Support',
+            () => _showHelp(context),
+      ),
+      _MenuItemData(
+        Icons.info_outline,
+        'About Agrova',
+            () => _showAbout(context),
+      ),
+    ];
+
+    return Transform.translate(
+      offset: const Offset(0, -24),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 20,
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.6),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Column(
+            children: List.generate(
+              items.length,
+                  (i) {
+                final item = items[i];
+                final isLast = i == items.length - 1;
+
+                return InkWell(
+                  onTap: item.onTap,
+                  borderRadius: isLast
+                      ? const BorderRadius.vertical(
+                    bottom: Radius.circular(18),
+                  )
+                      : BorderRadius.zero,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 15,
+                    ),
+                    decoration: BoxDecoration(
+                      border: isLast
+                          ? null
+                          : Border(
+                        bottom: BorderSide(
+                          color: Colors.grey.shade200,
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE8F2E4),
+                            borderRadius:
+                            BorderRadius.circular(11),
+                          ),
+                          child: Icon(
+                            item.icon,
+                            size: 20,
+                            color: darkGreen,
+                          ),
+                        ),
+                        const SizedBox(width: 13),
+                        Expanded(
+                          child: Text(
+                            item.label,
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          Icons.chevron_right,
+                          size: 19,
+                          color: Colors.grey.shade400,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogoutButton(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 20,
+      ),
+      child: Transform.translate(
+        offset: const Offset(0, -12),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(17),
+            onTap: () => _logout(context),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                vertical: 15,
+                horizontal: 18,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFEEEE),
+                borderRadius: BorderRadius.circular(17),
+                border: Border.all(
+                  color: const Color(0xFFF3CCCC),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFDCDC),
+                      borderRadius: BorderRadius.circular(11),
+                    ),
+                    child: const Icon(
+                      Icons.logout,
+                      color: Colors.redAccent,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 13),
+                  Expanded(
+                    child: Text(
+                      'Logout',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.redAccent,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    Icons.chevron_right,
+                    size: 19,
+                    color: Colors.redAccent.withOpacity(0.5),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-// ================================================================
-// STATS
-// ================================================================
+class _MenuItemData {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
 
-class ProfileStatsRow extends StatelessWidget {
-  const ProfileStatsRow({
-    super.key,
-    required this.farms,
-    required this.crops,
-    required this.yieldKg,
+  _MenuItemData(
+      this.icon,
+      this.label,
+      this.onTap,
+      );
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
+    required this.icon,
+    required this.title,
+    required this.value,
   });
 
-  final String farms;
-  final String crops;
-  final String yieldKg;
-
-  static const Color fieldBorder = Color(0xFFE0E0DA);
+  final IconData icon;
+  final String title;
+  final String value;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 18),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: fieldBorder,
-        ),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          StatItem(
-            value: farms,
-            label: 'Farms',
-          ),
           Container(
-            width: 1,
-            height: 32,
-            color: fieldBorder,
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F2E4),
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(
+              icon,
+              color: Profile.darkGreen,
+              size: 20,
+            ),
           ),
-          StatItem(
-            value: crops,
-            label: 'Crops',
-          ),
-          Container(
-            width: 1,
-            height: 32,
-            color: fieldBorder,
-          ),
-          StatItem(
-            value: yieldKg,
-            label: 'Yield (kg)',
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment:
+              CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.poppins(
+                    fontSize: 10,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -500,121 +1047,34 @@ class ProfileStatsRow extends StatelessWidget {
   }
 }
 
-class StatItem extends StatelessWidget {
-  const StatItem({
-    super.key,
-    required this.value,
-    required this.label,
-  });
-
-  final String value;
-  final String label;
-
-  static const Color darkGreen = Color(0xFF14361F);
-  static const Color hintGrey = Color(0xFF8A8A85);
-
+class _FieldRowsPainter extends CustomPainter {
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: darkGreen,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: hintGrey,
-          ),
-        ),
-      ],
-    );
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF3F5C28)
+          .withOpacity(0.5)
+      ..strokeWidth = 3;
+
+    const spacing = 16.0;
+    final diagonal = size.width + size.height;
+
+    for (
+    double x = -size.height;
+    x < diagonal;
+    x += spacing
+    ) {
+      canvas.drawLine(
+        Offset(x, size.height),
+        Offset(x + size.height, 0),
+        paint,
+      );
+    }
   }
-}
-
-// ================================================================
-// MENU ITEM
-// ================================================================
-
-class ProfileMenuItem extends StatelessWidget {
-  const ProfileMenuItem({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.iconColor,
-    this.textColor,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final Color? iconColor;
-  final Color? textColor;
-
-  static const Color darkGreen = Color(0xFF14361F);
-  static const Color mediumGreen = Color(0xFF3E7B27);
-  static const Color hintGrey = Color(0xFF8A8A85);
-  static const Color fieldBorder = Color(0xFFE0E0DA);
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: Colors.white.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: fieldBorder,
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  icon,
-                  color: iconColor ?? mediumGreen,
-                  size: 22,
-                ),
-
-                const SizedBox(width: 14),
-
-                Expanded(
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: textColor ?? darkGreen,
-                    ),
-                  ),
-                ),
-
-                const Icon(
-                  Icons.chevron_right,
-                  color: hintGrey,
-                  size: 20,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+  bool shouldRepaint(
+      covariant CustomPainter oldDelegate,
+      ) {
+    return false;
   }
 }

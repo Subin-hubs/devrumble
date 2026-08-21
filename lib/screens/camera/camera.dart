@@ -25,7 +25,6 @@ class _CameraState extends State<Camera> {
 
   final ImagePicker _picker = ImagePicker();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   final String apiUrl = 'http://10.120.8.144:8080/analyze';
 

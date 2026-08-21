@@ -35,15 +35,11 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // ============================================================
-  // LOGIN
-  // ============================================================
 
   Future<void> _handleLogin() async {
     final loginInput = _emailController.text.trim();
     final password = _passwordController.text;
 
-    // ---------------- VALIDATION ----------------
 
     if (loginInput.isEmpty) {
       _showMessage('Please enter your email or phone number.');
@@ -67,9 +63,6 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       String email = loginInput;
 
-      // ========================================================
-      // IF USER ENTERED PHONE NUMBER
-      // ========================================================
 
       if (!loginInput.contains('@')) {
         final userQuery = await _firestore
@@ -96,9 +89,6 @@ class _LoginScreenState extends State<LoginScreen> {
         email = storedEmail.toString().trim();
       }
 
-      // ========================================================
-      // FIREBASE AUTH LOGIN
-      // ========================================================
 
       final UserCredential credential =
       await _auth.signInWithEmailAndPassword(
@@ -112,10 +102,6 @@ class _LoginScreenState extends State<LoginScreen> {
         throw Exception('Login failed. Please try again.');
       }
 
-      // ========================================================
-      // CHECK USER DOCUMENT
-      // users/{uid}
-      // ========================================================
 
       final userDocument = await _firestore
           .collection('users')
@@ -123,8 +109,6 @@ class _LoginScreenState extends State<LoginScreen> {
           .get();
 
       if (!userDocument.exists) {
-        // The Firebase Auth account exists,
-        // but the Firestore profile does not.
         debugPrint(
           'Warning: users/${user.uid} does not exist in Firestore.',
         );
@@ -137,14 +121,10 @@ class _LoginScreenState extends State<LoginScreen> {
         success: true,
       );
 
-      // Small delay so user can see success message.
       await Future.delayed(const Duration(milliseconds: 500));
 
       if (!mounted) return;
 
-      // ========================================================
-      // GO TO HOME
-      // ========================================================
 
       Navigator.pushAndRemoveUntil(
         context,
@@ -209,9 +189,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // ============================================================
-  // FORGOT PASSWORD
-  // ============================================================
 
   Future<void> _handleForgotPassword() async {
     final input = _emailController.text.trim();
@@ -223,7 +200,6 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // Password reset requires an email.
     if (!input.contains('@')) {
       _showMessage(
         'Please enter your email address to reset your password.',
@@ -271,9 +247,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // ============================================================
-  // MESSAGE
-  // ============================================================
 
   void _showMessage(
       String message, {
@@ -296,9 +269,6 @@ class _LoginScreenState extends State<LoginScreen> {
       );
   }
 
-  // ============================================================
-  // BUILD
-  // ============================================================
 
   @override
   Widget build(BuildContext context) {
@@ -307,9 +277,8 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Background
           Image.asset(
-            'assets/logoback.png',
+            'assets/logback.png',
             fit: BoxFit.cover,
           ),
 
@@ -322,9 +291,6 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // ==================================================
-                  // LOGO
-                  // ==================================================
 
                   const Icon(
                     Icons.eco,
@@ -392,9 +358,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const SizedBox(height: 32),
 
-                  // ==================================================
-                  // TITLE
-                  // ==================================================
 
                   const Text(
                     'Welcome back!',
@@ -417,9 +380,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const SizedBox(height: 28),
 
-                  // ==================================================
-                  // EMAIL / PHONE
-                  // ==================================================
 
                   _buildTextField(
                     controller: _emailController,
@@ -430,9 +390,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const SizedBox(height: 14),
 
-                  // ==================================================
-                  // PASSWORD
-                  // ==================================================
 
                   _buildTextField(
                     controller: _passwordController,
@@ -457,9 +414,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const SizedBox(height: 10),
 
-                  // ==================================================
-                  // FORGOT PASSWORD
-                  // ==================================================
 
                   Align(
                     alignment: Alignment.centerRight,
@@ -487,9 +441,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const SizedBox(height: 16),
 
-                  // ==================================================
-                  // LOGIN BUTTON
-                  // ==================================================
 
                   SizedBox(
                     width: double.infinity,
@@ -534,19 +485,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const SizedBox(height: 24),
 
-                  // ==================================================
-                  // SIGN UP
-                  // ==================================================
 
                   GestureDetector(
                     onTap: () {
-                      // TODO:
-                      // Navigator.push(
-                      //   context,
-                      //   MaterialPageRoute(
-                      //     builder: (_) => const SignUpScreen(),
-                      //   ),
-                      // );
                     },
                     child: RichText(
                       text: const TextSpan(
@@ -582,9 +523,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // ============================================================
-  // TEXT FIELD
-  // ============================================================
 
   Widget _buildTextField({
     required TextEditingController controller,

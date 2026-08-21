@@ -153,7 +153,6 @@ class _NavbarState extends State<Navbar> {
                   _buildNavItem(0),
                   _buildNavItem(1),
 
-                  // Space for floating Scan button
                   const SizedBox(width: 72),
 
                   _buildNavItem(3),

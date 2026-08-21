@@ -94,7 +94,6 @@ class WeatherData {
 }
 
 class WeatherService {
-  // Kathmandu coordinates
   static const double latitude = 27.7172;
   static const double longitude = 85.3240;
 

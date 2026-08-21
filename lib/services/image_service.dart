@@ -9,7 +9,6 @@ class ImageService {
 
     final Uint8List originalBytes = await file.readAsBytes();
 
-    // Decode image
     final img.Image? originalImage =
     img.decodeImage(originalBytes);
 
