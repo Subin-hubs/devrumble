@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(rtk ls *)",
-      "Bash(command rtk find lib -name \"*.dart\" -type f -exec sed -i '/^\\\\s*\\\\/\\\\/.*$/d' {} +)"
-    ]
-  }
-}
